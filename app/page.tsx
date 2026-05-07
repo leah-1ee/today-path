@@ -40,7 +40,11 @@ export default function HomePage() {
         if (!res.ok) throw new Error("fetch failed");
         return res.json();
       })
-      .then((data: WeatherData) => setWeatherData(data))
+      .then((data) => {
+        if (!data?.weather) throw new Error("invalid response");
+        return data as WeatherData;
+      })
+      .then((data) => setWeatherData(data))
       .catch(() => {
         setFetchError(true);
         setWeatherData(MOCK_WEATHER);

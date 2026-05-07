@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { MOCK_WEATHER } from "@/lib/mockWeather";
 
 export async function GET() {
-  return NextResponse.json({ data: null });
+  return NextResponse.json(MOCK_WEATHER);
 }
