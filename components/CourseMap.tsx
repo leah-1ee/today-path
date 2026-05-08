@@ -10,7 +10,8 @@ interface CourseMapProps {
 // - 공원 입구 핀 (park.svg 아이콘)
 // - fitBounds()로 지도 범위 자동 조정
 
-export default function CourseMap({}: CourseMapProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function CourseMap({ course: _course }: CourseMapProps) {
   return (
     <div className="w-full h-[240px] bg-surface-container flex items-center justify-center">
       <span className="text-on-surface-variant font-body-md text-body-md">

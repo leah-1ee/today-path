@@ -60,7 +60,7 @@ export default function CoursePage() {
 
   function handleKakaoMap() {
     const kakaoUrl = `https://map.kakao.com/link/to/${course!.name},${course!.start_point.lat},${course!.start_point.lng}`;
-    window.open(kakaoUrl, "_blank");
+    window.open(kakaoUrl, "_blank", "noopener,noreferrer");
   }
 
   const pollen = weatherData?.pollen ?? MOCK_WEATHER.pollen;
