@@ -17,6 +17,16 @@ export interface Facility {
   name: string;
 }
 
+// 화장실 시설 상세 정보
+export type ToiletFacility = {
+  lat: number
+  lng: number
+  name: string
+  accessible: boolean    // 장애인용 대변기 1개 이상
+  children: boolean      // 어린이용 대변기 1개 이상
+  emergency_bell: boolean // 비상벨 설치 여부
+}
+
 // 식생 수종 정보
 export interface VegetationSpecies {
   name: string;          // 예: "소나무"
@@ -39,7 +49,7 @@ export interface Course {
   themes: Theme[];
   polyline: string; // Google Encoded Polyline
   start_point: { lat: number; lng: number };
-  facilities: { toilets: Facility[]; park_entrances: Facility[] };
+  facilities: { toilets: ToiletFacility[]; park_entrances: Facility[] };
   toilet_count: number;
   vegetation: { tags: PollenTag[]; description: string; species: VegetationSpecies[] };
   slope_grade: number;     // DTM 기반 평균 경사도, 낮을수록 평탄
