@@ -9,6 +9,10 @@ const KMA_URL =
 const NX = 62;
 const NY = 121;
 
+const AIR_URL =
+  "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty";
+const AIR_STATION = "수지";
+
 function formatDate(d: Date): string {
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth() + 1).padStart(2, "0");
@@ -44,12 +48,46 @@ function getBaseDateTime(): { base_date: string; base_time: string } {
   return { base_date: formatDate(kst), base_time };
 }
 
+function gradeToAirGrade(grade: number): WeatherData["air"]["pm10_grade"] {
+  if (grade === 1) return "좋음";
+  if (grade === 2) return "보통";
+  if (grade === 3) return "나쁨";
+  if (grade === 4) return "매우나쁨";
+  return "보통";
+}
+
+async function fetchAirKorea(): Promise<Partial<WeatherData["air"]>> {
+  const params = new URLSearchParams({
+    returnType: "json",
+    numOfRows: "1",
+    pageNo: "1",
+    stationName: AIR_STATION,
+    dataTerm: "DAILY",
+    ver: "1.3",
+  });
+
+  const res = await fetch(
+    `${AIR_URL}?serviceKey=${process.env.AIR_KOREA_API_KEY}&${params}`,
+    { cache: "no-store" }
+  );
+  if (!res.ok) throw new Error(`AirKorea API error: ${res.status}`);
+
+  const json = await res.json();
+  const item = json.response.body.items[0];
+
+  const pm10 = parseInt(item.pm10Value) || 0;
+  const pm25 = parseInt(item.pm25Value) || 0;
+  const pm10_grade = gradeToAirGrade(parseInt(item.pm10Grade1h));
+  const pm25_grade = gradeToAirGrade(parseInt(item.pm25Grade1h));
+
+  return { pm10, pm10_grade, pm25, pm25_grade };
+}
+
 async function fetchKmaWeather(): Promise<Partial<WeatherData["weather"]>> {
   const { base_date, base_time } = getBaseDateTime();
   const serviceKey = process.env.KMA_API_KEY!;
 
   const params = new URLSearchParams({
-    serviceKey,
     pageNo: "1",
     numOfRows: "1000",
     dataType: "JSON",
@@ -59,7 +97,10 @@ async function fetchKmaWeather(): Promise<Partial<WeatherData["weather"]>> {
     ny: String(NY),
   });
 
-  const res = await fetch(`${KMA_URL}?${params}`, { cache: "no-store" });
+  const res = await fetch(
+    `${KMA_URL}?serviceKey=${serviceKey}&${params}`,
+    { cache: "no-store" }
+  );
   if (!res.ok) throw new Error(`KMA API error: ${res.status}`);
 
   const json = await res.json();
@@ -112,26 +153,37 @@ async function fetchKmaWeather(): Promise<Partial<WeatherData["weather"]>> {
 }
 
 export async function GET() {
-  try {
-    const weather = await fetchKmaWeather();
+  const [kmaResult, airResult] = await Promise.allSettled([
+    fetchKmaWeather(),
+    fetchAirKorea(),
+  ]);
 
-    const data: WeatherData = {
-      ...MOCK_WEATHER,
-      updated_at: new Date().toISOString(),
-      weather: {
-        temp: weather.temp ?? MOCK_WEATHER.weather.temp,
-        feels_like: weather.feels_like ?? MOCK_WEATHER.weather.feels_like,
-        condition: weather.condition ?? MOCK_WEATHER.weather.condition,
-        is_raining: weather.is_raining ?? MOCK_WEATHER.weather.is_raining,
-      },
-    };
+  if (kmaResult.status === "rejected")
+    console.error("기상청 API 호출 실패:", kmaResult.reason);
+  if (airResult.status === "rejected")
+    console.error("에어코리아 API 호출 실패:", airResult.reason);
 
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("기상청 API 호출 실패:", error);
-    return NextResponse.json({
-      ...MOCK_WEATHER,
-      updated_at: new Date().toISOString(),
-    });
-  }
+  const weather =
+    kmaResult.status === "fulfilled" ? kmaResult.value : {};
+  const air =
+    airResult.status === "fulfilled" ? airResult.value : {};
+
+  const data: WeatherData = {
+    ...MOCK_WEATHER,
+    updated_at: new Date().toISOString(),
+    weather: {
+      temp: weather.temp ?? MOCK_WEATHER.weather.temp,
+      feels_like: weather.feels_like ?? MOCK_WEATHER.weather.feels_like,
+      condition: weather.condition ?? MOCK_WEATHER.weather.condition,
+      is_raining: weather.is_raining ?? MOCK_WEATHER.weather.is_raining,
+    },
+    air: {
+      pm10: air.pm10 ?? MOCK_WEATHER.air.pm10,
+      pm10_grade: air.pm10_grade ?? MOCK_WEATHER.air.pm10_grade,
+      pm25: air.pm25 ?? MOCK_WEATHER.air.pm25,
+      pm25_grade: air.pm25_grade ?? MOCK_WEATHER.air.pm25_grade,
+    },
+  };
+
+  return NextResponse.json(data);
 }
