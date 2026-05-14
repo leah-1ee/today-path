@@ -5,7 +5,7 @@ import { MOCK_WEATHER } from "@/lib/mockWeather";
 export const dynamic = "force-dynamic";
 
 const KMA_URL =
-  "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst";
+  "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst";
 const NX = 62;
 const NY = 121;
 
@@ -85,7 +85,8 @@ async function fetchAirKorea(): Promise<Partial<WeatherData["air"]>> {
 
 async function fetchKmaWeather(): Promise<Partial<WeatherData["weather"]>> {
   const { base_date, base_time } = getBaseDateTime();
-  const serviceKey = process.env.KMA_API_KEY!;
+  const serviceKey = process.env.KMA_API_KEY;
+  if (!serviceKey) throw new Error("KMA_API_KEY is not configured");
 
   const params = new URLSearchParams({
     pageNo: "1",

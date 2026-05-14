@@ -1,7 +1,7 @@
 /// <reference types="@types/google.maps" />
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Course } from "@/types/index";
 
 interface CourseMapProps {
@@ -47,7 +47,7 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
 
 export default function CourseMap({ course }: CourseMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -63,7 +63,7 @@ export default function CourseMap({ course }: CourseMapProps) {
         zoomControl: true,
         mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID",
       });
-      mapInstanceRef.current = map;
+      setMapLoaded(true);
 
       const path = google.maps.geometry.encoding.decodePath(course.polyline);
 
@@ -103,7 +103,7 @@ export default function CourseMap({ course }: CourseMapProps) {
   return (
     <div className="w-full h-[240px] bg-surface-container relative">
       <div ref={mapRef} className="w-full h-full" />
-      {!mapInstanceRef.current && (
+      {!mapLoaded && (
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-on-surface-variant font-body-md text-body-md">
             지도 준비 중
